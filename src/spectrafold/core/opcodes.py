@@ -98,9 +98,9 @@ def flop(j1, j2, j12, j3, j, j23):
     Examples
     --------
     >>> flop(1, 1, 1, 1, 1, 1)   # {1 1 1; 1 1 1}
-    Rational(-1, 6)
-    >>> flop(Rational(1,2), Rational(1,2), 1, Rational(1,2), Rational(1,2), 1)
     Rational(1, 6)
+    >>> flop(0, 1, 1, 1, 1, 1)   # {0 1 1; 1 1 1} — Pandya / X(3872) E1
+    Rational(-1, 3)
     """
     return wigner_6j(j1, j2, j12, j3, j, j23)
 
@@ -314,49 +314,44 @@ def wigner3j(j1, j2, j3, m1, m2, m3):
 
 def verify_pentagon(j1, j2, j3, j4, j5):
     """
-    Verify the Pentagon (Biedenhahn-Elliott) identity for given spins.
+    Verify the 6j orthogonality relation (a consequence of the Pentagon
+    identity) for given spins.
 
-    The Pentagon identity is the coherence condition for the monoidal
-    category structure — it asserts that all ways of reassociating a
-    fourfold tensor product give the same result:
+    The orthogonality sum:
+        sum_{j12} (2*j12+1) * {j1 j2 j12; j3 j4 j5}^2 = 1 / (2*j5+1)
 
-        sum_{j12} (2j12+1) {j1 j2 j12; j3 j j23} {j1 j23 j; j4 j5 j45}
-        = {j2 j3 j23; j4 j5 j45} {j1 j2 j; j4 j5 j12}   [Biedenhahn-Elliott]
+    This follows from the Pentagon (Biedenhahn-Elliott) identity and
+    is the standard machine-checkable form of the coherence condition
+    for the monoidal category Rep(SU(2)).  It is the Pachner 2→3 move
+    identity (Paper 349).
 
-    This is also the Pachner 2→3 move (Paper 349).
+    Parameters
+    ----------
+    j1, j2, j3, j4, j5 : int or half-int
 
     Returns
     -------
-    bool
-        True if the identity holds to exact arithmetic.
-    lhs, rhs : sympy expressions
-        Left and right sides of the identity (should be equal).
+    passed : bool — True if the identity holds exactly.
+    lhs    : sympy expression — computed sum.
+    rhs    : sympy expression — 1/(2*j5+1).
     """
-    from sympy import Sum, symbols, Rational as R
-
-    # For a specific test: {j1 j2 j12; j3 j j23} summed over j12
-    # LHS = sum_{j12} (2j12+1) W(j1,j2,j12) * W(j1,j23,j)
-    # This is a spot-check; full verification requires summing over allowed j12
-    j = Rational(j5)
-
-    # Simple check: for specific values, verify numerically via sympy
+    from sympy import simplify
     from sympy.physics.wigner import wigner_6j as w6j
 
-    lhs = sum(
-        (2 * j12 + 1) *
-        w6j(j1, j2, j12, j3, j4, j5) *
-        w6j(j1, j12, j4, j3, j2, j5)
-        for j12 in [abs(Rational(j1) - Rational(j2)) + k / 2
-                    for k in range(int(2 * (Rational(j1) + Rational(j2) -
-                                           abs(Rational(j1) - Rational(j2)))) + 1)]
-    )
+    j1, j2, j3, j4, j5 = (Rational(x) for x in (j1, j2, j3, j4, j5))
 
-    # RHS from orthogonality: sum_j12 (2j12+1) |6j|^2 = 1/(2j4+1)
-    rhs = Integer(1) / (2 * Rational(j4) + 1)
+    # Sum over allowed j12 values
+    j12_min = abs(j1 - j2)
+    j12_max = j1 + j2
+    half = Rational(1, 2)
 
-    # Use orthogonality form of Pentagon
-    from sympy import simplify
-    lhs_simplified = simplify(lhs)
-    rhs_simplified = simplify(rhs)
-    passed = simplify(lhs_simplified - rhs_simplified) == 0
-    return passed, lhs_simplified, rhs_simplified
+    lhs = Integer(0)
+    j12 = j12_min
+    while j12 <= j12_max:
+        val = w6j(j1, j2, j12, j3, j4, j5)
+        lhs += (2 * j12 + 1) * val * val
+        j12 += 1
+
+    rhs = Integer(1) / (2 * j5 + 1)
+    passed = simplify(lhs - rhs) == 0
+    return passed, simplify(lhs), rhs

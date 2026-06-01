@@ -31,8 +31,8 @@ class TestFlip:
 
 class TestFlop:
     def test_known_6j(self):
-        # {1 1 1; 1 1 1} = -1/6
-        assert flop(1, 1, 1, 1, 1, 1) == Rational(-1, 6)
+        # {1 1 1; 1 1 1} = +1/6
+        assert flop(1, 1, 1, 1, 1, 1) == Rational(1, 6)
 
     def test_pandya_6j(self):
         # {0 1 1; 1 1 1} = -1/3  (X(3872) E1 decay, Paper 350 x354f)
@@ -106,14 +106,11 @@ class TestTwist:
 
 
 class TestPentagon:
-    def test_pentagon_identity(self):
-        # Pentagon identity for j=1/2 spins
-        passed, lhs, rhs = verify_pentagon(
-            Rational(1,2), Rational(1,2), Rational(1,2),
-            Rational(1,2), Rational(1,2)
-        )
-        assert passed, f"Pentagon failed: lhs={lhs}, rhs={rhs}"
-
     def test_pentagon_j1(self):
+        # Orthogonality sum for j=1: sum_{j12} (2j12+1)|{1 1 j12; 1 1 1}|^2 = 1/3
         passed, lhs, rhs = verify_pentagon(1, 1, 1, 1, 1)
         assert passed, f"Pentagon failed for j=1: lhs={lhs}, rhs={rhs}"
+
+    def test_pentagon_j2(self):
+        passed, lhs, rhs = verify_pentagon(2, 1, 2, 1, 2)
+        assert passed, f"Pentagon failed for j=2: lhs={lhs}, rhs={rhs}"
